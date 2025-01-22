@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -8,7 +9,7 @@ public class StatusArea : MonoBehaviour
     // Start is called before the first frame update
     public GameObject playerArea, enemyArea, castArea;
     public TMP_Text playerHealthText, enemyHealthText;
-    public RectTransform playerHealthPanel, playerChargePanel, enemyHealthPanel;
+    public RectTransform playerHealthPanel, playerChargePanel, enemyHealthPanel, chargeCooldownPanel, attackCooldownPanel;
 
     public bool visible = true;
     private bool castVisible = false;
@@ -83,5 +84,17 @@ public class StatusArea : MonoBehaviour
     public void FadeOutCast()
     {
         castVisible = false;
+    }
+
+    public void SetChargeCooldown(float p)
+    {
+        if (p >= 1) p = 1;
+        chargeCooldownPanel.sizeDelta = new Vector2(131 - (131 * p), 0);
+    }
+
+    public void SetAttackCooldown(float p)
+    {
+        if (p >= 1) p = 1;
+        attackCooldownPanel.sizeDelta = new Vector2(131 - (131* p), 0);
     }
 }

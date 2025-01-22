@@ -4,8 +4,9 @@ using UnityEngine;
 
 public class ChargeController : MonoBehaviour
 {
+    Game Game;
+
     public CharacterInfo characterInfo;
-    StatusArea statusArea;
 
     public bool usingCharge = false;
     public AudioSource chargeAudio, chargeEndAudio;
@@ -14,7 +15,7 @@ public class ChargeController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        statusArea = GameObject.FindGameObjectWithTag("Game").GetComponent<Game>().UI.StatusArea;
+        Game = GameObject.FindGameObjectWithTag("Game").GetComponent<Game>();
     }
 
     // Update is called once per frame
@@ -78,7 +79,9 @@ public class ChargeController : MonoBehaviour
             */
         }
 
-        statusArea.SetChageAmount((float)characterInfo.charge / characterInfo.chargeMax);
+        Game.UI.StatusArea.SetChageAmount((float)characterInfo.charge / characterInfo.chargeMax);
+        Game.UI.StatusArea.SetChargeCooldown(useCooldown / 2f);
+
         useCooldown += Time.deltaTime;
     }
 

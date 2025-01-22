@@ -27,9 +27,10 @@ public class MovementController : MonoBehaviour
     public bool moving = false;
     public bool dead = false;
     public float jumpDelay = 0;
-    public float attackDelay = 2f;
+    public float attackDelay = 2.5f;
 
     void Start() {
+        Game = GameObject.FindGameObjectWithTag("Game").GetComponent<Game>();
         Cursor.lockState = CursorLockMode.Locked;
         animator = GetComponent<Animator>();
     }
@@ -53,37 +54,40 @@ public class MovementController : MonoBehaviour
         animator.SetBool("Idle", !moving);
         animator.SetFloat("MovementVertical", (float)((v + h + 0.01) / 2)); // 0.01 to never be stuck in sliding position
 
-        if (grounded)
+        /*
+        // Jump
+        if (jumpDelay > 0.3f && Input.GetKeyDown(KeyCode.Space))
         {
-            // Jump
-            if (jumpDelay > 0.3f && Input.GetKeyDown(KeyCode.Space))
+            grounded = false;
+            animator.SetBool("Busy", true);
+            controller.Move(new Vector3(0, 1.5f, 0));
+            speed = 5;
+        }
+        */
+
+        // Attack
+        if (attackDelay >= 2.5f)
+        {
+            canMove = true;
+
+            if (Input.GetKeyDown(KeyCode.Mouse0))
             {
-                grounded = false;
+                canMove = false;
+                attackDelay = 0;
+                animator.SetInteger("SwordSwing", Random.Range(1, 4));
+                animator.SetBool("Idle", false);
+                animator.SetFloat("MovementVertical", 0);
+                weaponSFX.Play(Random.Range(0, 3));
                 animator.SetBool("Busy", true);
-                controller.Move(new Vector3(0, 1.5f, 0));
-                speed = 5;
-            }
-
-            // Attack
-            if (attackDelay >= 2.5f)
-            {
-                canMove = true;
-
-                if (Input.GetKeyDown(KeyCode.Mouse0))
-                {
-                    canMove = false;
-                    attackDelay = 0;
-                    animator.SetInteger("SwordSwing", Random.Range(1, 4));
-                    weaponSFX.Play(Random.Range(0, 3));
-                    animator.SetBool("Busy", true);
-                }
-            }
-            else
-            {
-                animator.SetBool("Busy", false);
-                animator.SetInteger("SwordSwing", 0);
             }
         }
+        else
+        {
+            animator.SetBool("Busy", false);
+            animator.SetInteger("SwordSwing", 0);
+        }
+
+        Game.UI.StatusArea.SetAttackCooldown(attackDelay / 2.5f);
 
         jumpDelay += Time.deltaTime;
         attackDelay += Time.deltaTime;
@@ -97,31 +101,32 @@ public class MovementController : MonoBehaviour
         float v = Input.GetAxisRaw("Vertical");
 
         // Rotate character in direction of camera if we've moving, otherwise allow freelook
+
+        //We will normalize this direction vector to make sure players don't move faster on diagonals (ex. holding W and A)
+        //This will ensure the vector is always length 1
+        //https://www.khanacademy.org/computing/computer-programming/programming-natural-simulations/programming-vectors/a/vector-magnitude-normalization
+        //https://docs.unity3d.com/ScriptReference/Vector3.Normalize.html
+        Vector3 dir = new Vector3(h, 0, v).normalized;
+
+        //Smoothes an angle over time
+        //In our case our character's current rotation along y to the camera's y over SmoothTime
+        //https://docs.unity3d.com/ScriptReference/Mathf.SmoothDampAngle.html
+        float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, camera.eulerAngles.y, ref velocity, SmoothTime);
+
+        //transform.rotation is a quaternion
+        //https://docs.unity3d.com/ScriptReference/Transform-rotation.html
+        //Quaternion.Euler returns a rotation (a quaternion) which is rotated x,y,z degrees around their respective axes
+        //In our case this will rotate the character around the y-axis to match the smoothed forward direction of the camera
+        //https://docs.unity3d.com/ScriptReference/Quaternion.Euler.html
+        transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
         if (canMove)
         {
-            if (grounded && moving)
+            if (moving)
             {
                 if (!footstepAudio.isPlaying) footstepAudio.Play();
             }
             else footstepAudio.Stop();
-
-            //We will normalize this direction vector to make sure players don't move faster on diagonals (ex. holding W and A)
-            //This will ensure the vector is always length 1
-            //https://www.khanacademy.org/computing/computer-programming/programming-natural-simulations/programming-vectors/a/vector-magnitude-normalization
-            //https://docs.unity3d.com/ScriptReference/Vector3.Normalize.html
-            Vector3 dir = new Vector3(h, 0, v).normalized;
-
-            //Smoothes an angle over time
-            //In our case our character's current rotation along y to the camera's y over SmoothTime
-            //https://docs.unity3d.com/ScriptReference/Mathf.SmoothDampAngle.html
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, camera.eulerAngles.y, ref velocity, SmoothTime);
-
-            //transform.rotation is a quaternion
-            //https://docs.unity3d.com/ScriptReference/Transform-rotation.html
-            //Quaternion.Euler returns a rotation (a quaternion) which is rotated x,y,z degrees around their respective axes
-            //In our case this will rotate the character around the y-axis to match the smoothed forward direction of the camera
-            //https://docs.unity3d.com/ScriptReference/Quaternion.Euler.html
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
             //The Character Controller component makes movement very easy, simply tell it the direction you want to move!
             //Multiplying a quaternion with a vector results in a vector that is rotated by the given quaternion
@@ -131,6 +136,7 @@ public class MovementController : MonoBehaviour
         else footstepAudio.Stop();
     }
 
+    /*
     private void OnTriggerEnter(Collider other)
     {
         // Stop jumping, grounded
@@ -142,6 +148,7 @@ public class MovementController : MonoBehaviour
             animator.SetBool("Busy", false);
         }
     }
+    */
 
     public void Die()
     {
